@@ -15,6 +15,8 @@ BuildRequires: pkgconfig(dbus-1)
 BuildRequires: pkgconfig(dbus-glib-1)
 BuildRequires: pkgconfig(db-util)
 BuildRequires: pkgconfig(pkgmgr-info)
+BuildRequires: pkgconfig(libprivilege-control)
+BuildRequires: pkgconfig(security-server)
 BuildRequires: gettext-tools
 
 Requires(post):   /sbin/ldconfig

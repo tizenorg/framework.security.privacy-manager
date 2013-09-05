@@ -54,7 +54,31 @@ PrivacyIdInfo::getPrivacyIdFromPrivilege(const std::string privilege, std::strin
 	std::map < std::string, std::string >::iterator iter = m_privilegeToPrivacyMap.find(privilege);
 	if (iter == m_privilegeToPrivacyMap.end())
 		return PRIV_MGR_ERROR_NO_DATA;
-	privacyId =  iter->second;
+	privacyId = iter->second;
+
+	return PRIV_MGR_ERROR_SUCCESS;
+}
+
+int
+PrivacyIdInfo::getPrivilegeListFromPrivacyId(const std::string privacyId, std::list < std::string> & privilegeList)
+{
+	if (!m_isInitialized)
+		initialize();
+
+	privilegeList.clear();
+	for (std::map < std::string, std::string >::iterator iter = m_privilegeToPrivacyMap.begin(); iter != m_privilegeToPrivacyMap.end(); ++iter)
+	{
+		if (privacyId.compare((iter->second)) == 0)
+		{
+			privilegeList.push_back(iter->first);
+		}
+	}
+
+	if (privilegeList.size() == 0)
+	{
+		LOGE("PrivilegeList of %s privacy is empty!", privacyId.c_str());
+		return PRIV_MGR_ERROR_NO_DATA;
+	}
 
 	return PRIV_MGR_ERROR_SUCCESS;
 }

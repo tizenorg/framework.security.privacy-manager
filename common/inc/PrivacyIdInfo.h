@@ -30,6 +30,7 @@ private:
 public:
 	static int initialize(void);
 	static int getPrivacyIdFromPrivilege(const std::string privilege, std::string& privacyId);
+	static int getPrivilegeListFromPrivacyId(const std::string privacyId, std::list < std::string> & privilegeList);
 	static int getPrivacyIdListFromPrivilegeList(const std::list < std::string> privilegeList, std::list < std::string> & privacyIdList);
 	static int getAllPrivacyId(std::list < std::string >& privacyIdList);
 

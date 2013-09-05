@@ -55,6 +55,8 @@ public:
 
 	int setUserPrompted(const std::string pkgId, bool prompted);
 
+	int setPermissions(const std::string pkgId, const std::string privacyId, bool enabled);
+
 };
 
 

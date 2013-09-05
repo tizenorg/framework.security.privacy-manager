@@ -8,7 +8,7 @@ SET(LIBDIR "\${prefix}/lib")
 SET(INCLUDEDIR "\${prefix}/include")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info)
+pkg_check_modules(pkgs REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info capi-system-info security-server)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -46,12 +46,14 @@ INCLUDE_DIRECTORIES(
 	${server_include_dir}
 	${common_include_dir} 
 	${dbus_include_dir}
+	/usr/include/security-server/
 	)
 
 SET(PRIVACY_MANAGER_SERVER_SOURCES 
 	${common_src_dir}/SocketConnection.cpp
 	${common_src_dir}/SocketStream.cpp
 	${common_src_dir}/PrivacyDb.cpp
+	${common_src_dir}/PrivacyIdInfo.cpp
     #	${server_src_dir}/main.cpp
 	${server_src_dir}/SocketService.cpp
 	${server_src_dir}/PrivacyManagerDaemon.cpp
