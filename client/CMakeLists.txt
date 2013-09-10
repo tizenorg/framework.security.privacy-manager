@@ -41,6 +41,12 @@ IF(FILTER_LISTED_PKG)
     MESSAGE("FILTER PKGs BY FILTERING LIST")
     ADD_DEFINITIONS("-D__FILTER_LISTED_PKG")
 ENDIF(FILTER_LISTED_PKG)
+## SET PRIVACY_POPUP FLAG
+OPTION (PRIVACY_POPUP "PRIVACY_POPUP" ON)
+IF(PRIVACY_POPUP)
+	MESSAGE("PRIVACY_POPUP IS ENABLED")
+	ADD_DEFINITIONS("-D__PRIVACY_POPUP")
+ENDIF(PRIVACY_POPUP)
 
 ###################################################################################################
 ## for libprivacy-manager-client (executable)

@@ -25,7 +25,6 @@
 
 static const xmlChar _NODE_PRIVILEGES[]		= "privileges";
 static const xmlChar _NODE_PRIVILEGE[]		= "privilege";
-static const char TEST_AUTOMATION_PRIVILEGE[] = "http://tizen.org/privilege/testautomation";
 
 void destroy_char_list(char** ppList, int size)
 {
@@ -43,7 +42,6 @@ __attribute__ ((visibility("default")))
 int PKGMGR_PARSER_PLUGIN_INSTALL(xmlDocPtr docPtr, const char* packageId)
 {
 	int ret;
-    bool privacyPopupRequired = true;
 
 	// Node: <privileges>
 	xmlNodePtr curPtr = xmlFirstElementChild(xmlDocGetRootElement(docPtr));
@@ -67,11 +65,6 @@ int PKGMGR_PARSER_PLUGIN_INSTALL(xmlDocPtr docPtr, const char* packageId)
 				LOGE("Failed to get value");
 				return -EINVAL;
 			}
-            if (strncmp(reinterpret_cast<char*>(pPrivilege), TEST_AUTOMATION_PRIVILEGE, strlen(TEST_AUTOMATION_PRIVILEGE) ) == 0 )
-            {
-            	SECURE_LOGD("No privacy popup");
-                privacyPopupRequired = false;
-            }
             else 
 			{
 				privilegeList.push_back(std::string( reinterpret_cast<char*> (pPrivilege)));
@@ -97,7 +90,11 @@ int PKGMGR_PARSER_PLUGIN_INSTALL(xmlDocPtr docPtr, const char* packageId)
 	ppPrivilegeList[privilegeList.size()] = (char*)calloc (2, sizeof(char));
 	memcpy(ppPrivilegeList[privilegeList.size()], "\0", 1);
 
-	ret = privacy_manager_client_install_privacy(packageId, (const char**) ppPrivilegeList, privacyPopupRequired);
+#ifdef __PRIVACY_POPUP
+	ret = privacy_manager_client_install_privacy(packageId, (const char**) ppPrivilegeList, true);
+#else
+	ret = privacy_manager_client_install_privacy(packageId, (const char**) ppPrivilegeList, false);
+#endif
 	destroy_char_list(ppPrivilegeList, privilegeList.size() + 1);
 	if (ret != PRIV_MGR_ERROR_SUCCESS)
 	{

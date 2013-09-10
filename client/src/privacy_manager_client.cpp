@@ -127,9 +127,15 @@ int privacy_manager_client_set_package_privacy(const char *package_id, const cha
 
 int privacy_manager_client_check_user_consented(const char *package_id, bool *consented)
 {
+
+#ifdef __PRIVACY_POPUP
 	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
 	return pInst->isUserPrompted(std::string(package_id), *consented);
+#else
+	*consented = true;
+	return PRIV_MGR_ERROR_SUCCESS;
+#endif
 }
 
 int privacy_manager_client_set_user_consented(const char *package_id, bool consented)

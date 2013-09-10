@@ -85,14 +85,16 @@ echo cmake . -DPREFIX=%{_prefix} \
         -DINCLUDEDIR=%{_includedir} \
         -DCMAKE_BUILD_TYPE=%{build_type} \
         -DVERSION=%{version} \
-        -DFILTER_LISTED_PKG=ON
+        -DFILTER_LISTED_PKG=ON \
+		-DPRIVACY_POPUP=OFF
 cmake . -DPREFIX=%{_prefix} \
         -DEXEC_PREFIX=%{_exec_prefix} \
         -DLIBDIR=%{_libdir} \
         -DINCLUDEDIR=%{_includedir} \
         -DCMAKE_BUILD_TYPE=%{build_type} \
         -DVERSION=%{version} \
-        -DFILTER_LISTED_PKG=ON
+        -DFILTER_LISTED_PKG=ON \
+		-DPRIVACY_POPUP=OFF
 make %{?jobs:-j%jobs}
 
 %install
