@@ -24,18 +24,20 @@
 class PrivacyIdInfo
 {
 private:
-	static std::map <std::string, std::string> m_privilegeToPrivacyMap;
+	static std::map< std::string, std::string > m_privilegeToPrivacyMap;
 	static bool m_isInitialized;
 
 public:
 	static int initialize(void);
 	static int getPrivacyIdFromPrivilege(const std::string privilege, std::string& privacyId);
-	static int getPrivilegeListFromPrivacyId(const std::string privacyId, std::list < std::string> & privilegeList);
-	static int getPrivacyIdListFromPrivilegeList(const std::list < std::string> privilegeList, std::list < std::string> & privacyIdList);
-	static int getAllPrivacyId(std::list < std::string >& privacyIdList);
+	static int getPrivilegeListFromPrivacyId(const std::string privacyId, std::list< std::string > & privilegeList);
+	static int getPrivacyIdListFromPrivilegeList(const std::list< std::string > privilegeList, std::list< std::string >& privacyIdList);
+	static int getAllPrivacyId(std::list< std::string >& privacyIdList);
 
 	static int getPrivaycDisplayName(const std::string privacyId, std::string& displayName);
 	static int getPrivaycDescription(const std::string privacyId, std::string& description);
+
+	static int isFeatureEnabled(const char* feature, bool& enabled);
 };
 
 #endif //_PRIVACY_ID_INFO_H_

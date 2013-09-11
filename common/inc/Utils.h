@@ -24,6 +24,7 @@
 #include <sqlite3.h>
 #include <memory>
 #include <string>
+#include <unistd.h>
 #include <db-util.h>
 
 #define	TryCatchLogReturn(condition, expr, r, logFormat)	if (!(condition)) { \
@@ -56,14 +57,29 @@ auto DbDeleter = [&](sqlite3* pPtr) { /*sqlite3_close(pPtr);*/ db_util_close(pPt
 	{\
 		/*int res = sqlite3_open_v2(dbpath, &pHandler##Temp, mode , NULL);*/\
 		int res = db_util_open_with_options(dbpath, &pHandler##Temp, mode, NULL);\
-		TryCatchResLogReturn( res == SQLITE_OK, , PRIV_MGR_ERROR_DB_ERROR, "db_util_open_with_options : %d", res);\
+		TryCatchResLogReturn(res == SQLITE_OK, , PRIV_MGR_ERROR_DB_ERROR, "db_util_open_with_options : %d", res);\
 	}\
 	setDbToUniquePtr(pHandler, pHandler##Temp);\
-	
+
+static const int MAX_DATABASE_RETRY_COUNT = 5;
+static const int SLEEP_TIME = 50000;
 #define prepareDb(pHandler, sql, pStmt)	sqlite3_stmt* pStmt##Temp;\
 	{\
-		int res = sqlite3_prepare_v2(pHandler.get(), sql, -1, & pStmt##Temp, NULL);\
-		TryCatchResLogReturn( res == SQLITE_OK, , PRIV_MGR_ERROR_DB_ERROR, "sqlite3_prepare_v2 : %d", res);\
+		int res = SQLITE_OK;\
+		for (int dbRetryCount = 0; dbRetryCount < MAX_DATABASE_RETRY_COUNT; dbRetryCount++)\
+		{\
+			res = sqlite3_prepare_v2(pHandler.get(), sql, -1, & pStmt##Temp, NULL);\
+			if (res != SQLITE_BUSY)\
+			{\
+				break;\
+			}\
+			else\
+			{\
+				LOGE("[DbRetryCount][%d]: Database is busy!", dbRetryCount); \
+				usleep(SLEEP_TIME);\
+			}\
+		}\
+		TryCatchResLogReturn(res == SQLITE_OK, , PRIV_MGR_ERROR_DB_ERROR, "sqlite3_prepare_v2 : %d", res);\
 	}\
 	setStmtToUniquePtr(pStmt, pStmt##Temp);
 
