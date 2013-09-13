@@ -23,12 +23,13 @@
 #include <sqlite3.h>
 #include <mutex>
 #include <dbus/dbus.h>
+#include <gio/gio.h>
 
 class NotificationServer
 {
 private:
 	bool m_initialized;
-	DBusConnection* m_pDBusConnection;
+	GDBusConnection* m_pDBusConnection;
 public:
 
 	NotificationServer(void);
