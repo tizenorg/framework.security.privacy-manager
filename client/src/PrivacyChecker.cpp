@@ -37,6 +37,9 @@ GMainLoop* PrivacyChecker::m_pLoop = NULL;
 GMainContext* PrivacyChecker::m_pHandlerGMainContext = NULL;
 const int MAX_LOCAL_BUF_SIZE = 128;
 pthread_t PrivacyChecker::m_signalThread;
+pthread_mutex_t PrivacyChecker::syncMutex;
+pthread_cond_t PrivacyChecker::syncCondition;
+
 
 int
 PrivacyChecker::initialize(const std::string pkgId)
@@ -62,6 +65,7 @@ int
 PrivacyChecker::initialize(void)
 {
 	TryReturn(!m_isInitialized, PRIV_MGR_ERROR_SUCCESS, , "Already Initalized");
+	LOGI("Starting initialize");
 
 	m_pHandlerGMainContext = g_main_context_new();
 	TryReturn(m_pHandlerGMainContext != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, m_pkgId.clear(), "cannot create m_pHandlerGMainContext");
@@ -69,11 +73,21 @@ PrivacyChecker::initialize(void)
 	m_pLoop = g_main_loop_new(m_pHandlerGMainContext, FALSE);
 	TryReturn(m_pLoop != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, m_pkgId.clear(), "cannot create m_pLoop");
 
-	int res = pthread_create(&m_signalThread, NULL, &runSignalListenerThread, NULL);
+	int res = pthread_mutex_init(&syncMutex, NULL);
+	TryReturn(res == 0, PRIV_MGR_ERROR_SYSTEM_ERROR, , "Failed to init mutext");
+	res = pthread_cond_init(&syncCondition, NULL);
+	TryReturn(res == 0, PRIV_MGR_ERROR_SYSTEM_ERROR, , "Failed to init pthread condition value");
+
+	pthread_mutex_lock(&syncMutex);
+
+	res = pthread_create(&m_signalThread, NULL, &runSignalListenerThread, NULL);
 	TryReturn(res >= 0, PRIV_MGR_ERROR_SYSTEM_ERROR, errno = res;, "Failed to create listener thread :%s", strerror(res));
+	pthread_cond_wait(&syncCondition, &syncMutex);
+	pthread_mutex_unlock(&syncMutex);
 
 	m_isInitialized = true;
 
+	LOGI("Initialized");
 	return PRIV_MGR_ERROR_SUCCESS;
 }
 
@@ -84,6 +98,10 @@ PrivacyChecker::runSignalListenerThread(void* pData)
 	LOGI("Running g main loop for signal");
 
 	initializeDbus();
+
+	pthread_mutex_lock(&syncMutex);
+	pthread_cond_signal(&syncCondition);
+	pthread_mutex_unlock(&syncMutex);
 
 	g_main_loop_run(m_pLoop);
 
@@ -100,8 +118,10 @@ PrivacyChecker::initializeDbus(void)
 	DBusError error;
 	dbus_error_init(&error);
 
+	LOGI("Starting initialize");
+
 	m_pDBusConnection = dbus_bus_get_private(DBUS_BUS_SYSTEM, &error);
-	TryReturn(m_pDBusConnection != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, dbus_error_free(&error), "dbus_bus_get_private [%s] : %d", PRIV_MGR_ERROR_SYSTEM_ERROR);
+	TryReturn(m_pDBusConnection != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, dbus_error_free(&error), "dbus_bus_get_private [%s] : %d", error.message, PRIV_MGR_ERROR_SYSTEM_ERROR);
 
 	dbus_connection_setup_with_g_main(m_pDBusConnection, m_pHandlerGMainContext);
 	std::unique_ptr < char[] > pRule(new char[MAX_LOCAL_BUF_SIZE]);
@@ -113,6 +133,7 @@ PrivacyChecker::initializeDbus(void)
 	dbus_bool_t r = dbus_connection_add_filter(m_pDBusConnection, handleNotification, NULL, NULL);
 	TryReturn(r, PRIV_MGR_ERROR_SYSTEM_ERROR, , "dbus_connection_add_filter: %d", PRIV_MGR_ERROR_SYSTEM_ERROR);
 
+	LOGI("Initialized");
 	return PRIV_MGR_ERROR_SUCCESS;
 }
 

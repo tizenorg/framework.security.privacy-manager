@@ -41,6 +41,9 @@ private:
 	static GMainLoop* m_pLoop;
 	static GMainContext* m_pHandlerGMainContext;
 	static pthread_t m_signalThread;
+	static pthread_mutex_t syncMutex;
+	static pthread_cond_t syncCondition;
+
 
 private:
 	static int initializeDbus(void);
