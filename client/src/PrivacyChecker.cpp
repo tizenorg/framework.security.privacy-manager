@@ -65,7 +65,7 @@ int
 PrivacyChecker::initialize(void)
 {
 	TryReturn(!m_isInitialized, PRIV_MGR_ERROR_SUCCESS, , "Already Initalized");
-	LOGI("Starting initialize");
+	LOGI("Starting initialize.");
 
 	m_pHandlerGMainContext = g_main_context_new();
 	TryReturn(m_pHandlerGMainContext != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, m_pkgId.clear(), "cannot create m_pHandlerGMainContext");
@@ -81,13 +81,13 @@ PrivacyChecker::initialize(void)
 	pthread_mutex_lock(&syncMutex);
 
 	res = pthread_create(&m_signalThread, NULL, &runSignalListenerThread, NULL);
-	TryReturn(res >= 0, PRIV_MGR_ERROR_SYSTEM_ERROR, errno = res;, "Failed to create listener thread :%s", strerror(res));
+	TryReturn(res >= 0, PRIV_MGR_ERROR_SYSTEM_ERROR, pthread_mutex_unlock(&syncMutex); errno = res, "Failed to create listener thread :%s", strerror(res));
 	pthread_cond_wait(&syncCondition, &syncMutex);
 	pthread_mutex_unlock(&syncMutex);
 
 	m_isInitialized = true;
 
-	LOGI("Initialized");
+	LOGI("Initialized.");
 	return PRIV_MGR_ERROR_SUCCESS;
 }
 
