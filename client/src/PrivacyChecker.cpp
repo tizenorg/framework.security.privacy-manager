@@ -31,15 +31,15 @@ bool PrivacyChecker::m_isInitialized = false;
 std::map < std::string, bool >PrivacyChecker::m_privacyCache;
 std::map < std::string, std::map < std::string, bool > > PrivacyChecker::m_privacyInfoCache;
 std::mutex PrivacyChecker::m_cacheMutex;
+std::mutex PrivacyChecker::m_dbusMutex;
+std::condition_variable PrivacyChecker::m_condition;
 std::string PrivacyChecker::m_pkgId;
 DBusConnection* PrivacyChecker::m_pDBusConnection;
 GMainLoop* PrivacyChecker::m_pLoop = NULL;
 GMainContext* PrivacyChecker::m_pHandlerGMainContext = NULL;
 const int MAX_LOCAL_BUF_SIZE = 128;
 pthread_t PrivacyChecker::m_signalThread;
-pthread_mutex_t PrivacyChecker::syncMutex;
-pthread_cond_t PrivacyChecker::syncCondition;
-
+static bool conditionFlag = false;
 
 int
 PrivacyChecker::initialize(const std::string pkgId)
@@ -65,7 +65,7 @@ int
 PrivacyChecker::initialize(void)
 {
 	TryReturn(!m_isInitialized, PRIV_MGR_ERROR_SUCCESS, , "Already Initalized");
-	LOGI("Starting initialize.");
+	LOGI("Starting initialize");
 
 	m_pHandlerGMainContext = g_main_context_new();
 	TryReturn(m_pHandlerGMainContext != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, m_pkgId.clear(), "cannot create m_pHandlerGMainContext");
@@ -73,21 +73,17 @@ PrivacyChecker::initialize(void)
 	m_pLoop = g_main_loop_new(m_pHandlerGMainContext, FALSE);
 	TryReturn(m_pLoop != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, m_pkgId.clear(), "cannot create m_pLoop");
 
-	int res = pthread_mutex_init(&syncMutex, NULL);
-	TryReturn(res == 0, PRIV_MGR_ERROR_SYSTEM_ERROR, , "Failed to init mutext");
-	res = pthread_cond_init(&syncCondition, NULL);
-	TryReturn(res == 0, PRIV_MGR_ERROR_SYSTEM_ERROR, , "Failed to init pthread condition value");
-
-	pthread_mutex_lock(&syncMutex);
-
-	res = pthread_create(&m_signalThread, NULL, &runSignalListenerThread, NULL);
-	TryReturn(res >= 0, PRIV_MGR_ERROR_SYSTEM_ERROR, pthread_mutex_unlock(&syncMutex); errno = res, "Failed to create listener thread :%s", strerror(res));
-	pthread_cond_wait(&syncCondition, &syncMutex);
-	pthread_mutex_unlock(&syncMutex);
+	std::unique_lock<std::mutex> lock(m_dbusMutex);
+	int res = pthread_create(&m_signalThread, NULL, &runSignalListenerThread, NULL);
+	TryReturn(res >= 0, PRIV_MGR_ERROR_SYSTEM_ERROR, errno = res, "Failed to create listener thread :%s", strerror(res));
+	while (conditionFlag == false)
+	{
+		m_condition.wait(lock);
+	}
 
 	m_isInitialized = true;
 
-	LOGI("Initialized.");
+	LOGI("Initialized");
 	return PRIV_MGR_ERROR_SUCCESS;
 }
 
@@ -99,9 +95,11 @@ PrivacyChecker::runSignalListenerThread(void* pData)
 
 	initializeDbus();
 
-	pthread_mutex_lock(&syncMutex);
-	pthread_cond_signal(&syncCondition);
-	pthread_mutex_unlock(&syncMutex);
+	{
+		std::unique_lock<std::mutex> lock(m_dbusMutex);
+		conditionFlag = true;
+		m_condition.notify_all();
+	}
 
 	g_main_loop_run(m_pLoop);
 

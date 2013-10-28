@@ -23,6 +23,7 @@
 #include <vector>
 #include <memory>
 #include <map>
+#include <condition_variable>
 #include <PrivacyManagerTypes.h>
 #include <dbus/dbus.h>
 #include <glib.h>
@@ -41,9 +42,8 @@ private:
 	static GMainLoop* m_pLoop;
 	static GMainContext* m_pHandlerGMainContext;
 	static pthread_t m_signalThread;
-	static pthread_mutex_t syncMutex;
-	static pthread_cond_t syncCondition;
-
+	static std::mutex m_dbusMutex;
+	static std::condition_variable m_condition;
 
 private:
 	static int initializeDbus(void);
