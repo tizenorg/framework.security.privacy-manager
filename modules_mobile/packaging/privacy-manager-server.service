@@ -1,0 +1,9 @@
+
+[Unit]
+Description=privacy manager server
+
+[Service]
+ExecStart=/usr/bin/privacy-manager-server
+
+[Install]
+WantedBy=multi-user.target
