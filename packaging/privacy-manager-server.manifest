@@ -5,6 +5,9 @@
                         <label name="privacy-manager::daemon" />
                         <label name="privacy-manager::db" />
                 </provide>
+        		<request>
+					<smack request="security-server::api-app-permissions" type="w"/>
+		        </request>
         </define>
         <request>
                 <domain name="_" />
