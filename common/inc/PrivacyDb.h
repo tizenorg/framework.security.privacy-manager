@@ -1,0 +1,73 @@
+/*
+ * Copyright (c) 2013 Samsung Electronics Co., Ltd All Rights Reserved
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+#ifndef _PRIVACY_DB_H_
+#define _PRIVACY_DB_H_
+
+#include <string>
+#include <memory>
+#include <list>
+#include <mutex>
+#if defined(__FILTER_LISTED_PKG) || defined(__LOCATION_FILTER_LISTED_PKG)
+#include <map>
+#endif
+
+class PrivacyDb
+{
+private:
+	static std::mutex m_singletonMutex;
+	static PrivacyDb* m_pInstance;
+#if defined(__FILTER_LISTED_PKG) || defined(__LOCATION_FILTER_LISTED_PKG)
+    const static std::string PRIVACY_FILTER_LIST_FILE;
+    const static std::string PRIVACY_LOCATION_FILTER_LIST_FILE;
+    const static std::string FILTER_KEY;
+    static std::map < std::string, bool > m_filteredPkgList;
+    static std::map < std::string, bool > m_locationFilteredPkgList;
+#endif
+
+private:
+	void createDB(void);
+
+	bool isFilteredPackage(const std::string pkgId) const;
+
+	bool isLocationFilteredPackage(const std::string pkgId) const;
+
+	PrivacyDb(void);
+
+	~PrivacyDb(void);
+
+public:
+	static PrivacyDb* getInstance(void);
+
+	int getPrivacyAppPackages(std::list <std::string>& list) const;
+
+	int getAppPackagePrivacyInfo(const std::string pkgId, std::list < std::pair < std::string, bool > > & list) const;
+
+	int setPrivacySetting(const std::string pkgId, const std::string privacyId, bool enabled);
+
+	int addAppPackagePrivacyInfo(const std::string pkgcId, const std::list < std::string > privilegeList, bool privacyPopupRequired);
+
+	int removeAppPackagePrivacyInfo(const std::string pkgId);
+
+	int isUserPrompted(const std::string pkgId, bool& isPrompted) const;
+
+	int setUserPrompted(const std::string pkgId, bool prompted);
+
+	int getAppPackagesbyPrivacyId(std::string privacyId, std::list < std::pair < std::string, bool > >& list) const;
+};
+
+
+#endif // _PRIVACY_DB_H_

@@ -1,0 +1,18 @@
+<manifest>
+        <define>
+                <domain name="privacy-manager" />
+                <provide>
+                        <label name="privacy-manager::daemon" />
+                        <label name="privacy-manager::db" />
+                </provide>
+        		<request>
+					<smack request="security-server::api-app-permissions" type="w"/>
+		        </request>
+        </define>
+        <request>
+                <domain name="_" />
+        </request>
+        <assign>
+		        <filesystem path="/opt/dbspace/.privacylist.db" label="privacy-manager::db" exec_label="none" />
+		</assign>
+</manifest>

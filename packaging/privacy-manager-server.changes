@@ -1,0 +1,2 @@
+* Thu Jul 25 2013 Hyunwoo Kim <hwlove.kim@samsung.com>
+- If a feature is not supported in devices, related privacy ID is ignored.
