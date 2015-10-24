@@ -21,186 +21,245 @@
 #include <PrivacyManagerClient.h>
 #include <PrivacyIdInfo.h>
 #include <privacy_manager_client.h>
+#include <pkgmgr-info.h>
 #include "privacy_manager_client_internal_types.h"
 
 int create_privacy_info_client_s(const char* privacy_id, bool enabled, privacy_info_client_s **privacy_info)
 {
-	privacy_info_client_s* temp = (privacy_info_client_s*) calloc(1, sizeof(privacy_info_client_s));
-	if (temp == NULL)
-		return PRIV_MGR_ERROR_OUT_OF_MEMORY;
+    privacy_info_client_s* temp = (privacy_info_client_s*) calloc(1, sizeof(privacy_info_client_s));
+    if (temp == NULL)
+        return PRIV_MGR_ERROR_OUT_OF_MEMORY;
 
-	int size = strlen(privacy_id);
-	temp->privacy_id = (char*) calloc(1, size + 1);
-	if (temp->privacy_id == NULL)
-	{
-		free(temp);
-		return PRIV_MGR_ERROR_OUT_OF_MEMORY;
-	}
-	memcpy(temp->privacy_id, privacy_id, size + 1);
-	
-	temp->is_enabled = enabled;
+    int size = strlen(privacy_id);
+    temp->privacy_id = (char*) calloc(1, size + 1);
+    if (temp->privacy_id == NULL)
+    {
+        free(temp);
+        return PRIV_MGR_ERROR_OUT_OF_MEMORY;
+    }
+    memcpy(temp->privacy_id, privacy_id, size + 1);
 
-	*privacy_info = temp;
-	
-	return PRIV_MGR_ERROR_SUCCESS;
+    temp->is_enabled = enabled;
+
+    *privacy_info = temp;
+
+    return PRIV_MGR_ERROR_SUCCESS;
 }
 
 int privacy_manager_client_install_privacy(const char *package_id, const char** privacy_list, bool privacy_popup_required)
 {
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
-	std::list < std::string > privacyList;
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    std::list < std::string > privacyList;
 
-	while (*privacy_list[0] != '\0')
-	{
-		privacyList.push_back(std::string(*privacy_list++));
-	}
+    while (*privacy_list[0] != '\0')
+    {
+        privacyList.push_back(std::string(*privacy_list++));
+    }
 
-	int retval = pInst->addAppPackagePrivacyInfo(std::string(package_id), privacyList, privacy_popup_required, true);
+    int retval = pInst->addAppPackagePrivacyInfo(std::string(package_id), privacyList, privacy_popup_required, true);
 
-	return retval;
+    return retval;
 }
 
 int privacy_manager_client_install_privacy_by_client(const char *package_id, const char** privacy_list, bool privacy_popup_required)
 {
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
-	std::list < std::string > privacyList;
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    std::list < std::string > privacyList;
 
-	while (*privacy_list[0] != '\0')
-	{
-		privacyList.push_back(std::string(*privacy_list++));
-	}
+    while (*privacy_list[0] != '\0')
+    {
+        privacyList.push_back(std::string(*privacy_list++));
+    }
 
-	int retval = pInst->addAppPackagePrivacyInfo(std::string(package_id), privacyList, privacy_popup_required, false);
+    int retval = pInst->addAppPackagePrivacyInfo(std::string(package_id), privacyList, privacy_popup_required, false);
 
-	return retval;
+    return retval;
 }
 
 int privacy_manager_client_uninstall_privacy(const char *package_id)
 {
-	if (package_id == NULL)
-		return PRIV_MGR_ERROR_INVALID_PARAMETER;
-	return PrivacyManagerClient::getInstance()->removeAppPackagePrivacyInfo(std::string(package_id), false);
+    if (package_id == NULL)
+        return PRIV_MGR_ERROR_INVALID_PARAMETER;
+    return PrivacyManagerClient::getInstance()->removeAppPackagePrivacyInfo(std::string(package_id), false);
 }
 
 int privacy_manager_client_uninstall_privacy_by_server(const char *package_id)
 {
-	if (package_id == NULL)
-		return PRIV_MGR_ERROR_INVALID_PARAMETER;
-	return PrivacyManagerClient::getInstance()->removeAppPackagePrivacyInfo(std::string(package_id), true);
+    if (package_id == NULL)
+        return PRIV_MGR_ERROR_INVALID_PARAMETER;
+    return PrivacyManagerClient::getInstance()->removeAppPackagePrivacyInfo(std::string(package_id), true);
 }
 
 int privacy_manager_client_foreach_privacy_packages(privacy_manager_client_privacy_packages_cb callback, void *user_data)
 {
-	int retval;
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    int retval;
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	std::list < std::string > list;
-	retval = pInst->getPrivacyAppPackages(list);
-	if (retval != PRIV_MGR_ERROR_SUCCESS)
-		return retval;
-	if (list.size() == 0)
-		return PRIV_MGR_ERROR_NO_DATA;
+    std::list < std::string > list;
+    std::list < std::string > tempList;
+    retval = pInst->getPrivacyAppPackages(tempList);
 
-	for (std::list < std::string >::iterator iter = list.begin(); iter != list.end(); ++iter)
-	{
-		if ( ! callback(iter->c_str(), user_data) )
-			break;
-	}
+    if (retval != PRIV_MGR_ERROR_SUCCESS)
+        return retval;
+    if (tempList.size() == 0)
+    {
+        return PRIV_MGR_ERROR_NO_DATA;
+    }
+    else
+    {
+        for(std::list <std::string>::iterator iter = tempList.begin(); iter != tempList.end(); ++iter)
+        {
+            pkgmgrinfo_pkginfo_h handle;
+            handle = NULL;
+            int ret = pkgmgrinfo_pkginfo_get_pkginfo(iter->c_str(), &handle);
+            if( ret == PMINFO_R_OK && handle != NULL)
+            {
+                list.push_back(*iter);
+            }
+            pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
+        }
+    }
+    if(list.size() == 0)
+    {
+        return PRIV_MGR_ERROR_NO_DATA;
+    }
 
-	return PRIV_MGR_ERROR_SUCCESS;
+    for (std::list < std::string >::iterator iter = list.begin(); iter != list.end(); ++iter)
+    {
+        if ( ! callback(iter->c_str(), user_data) )
+            break;
+    }
+
+    return PRIV_MGR_ERROR_SUCCESS;
 }
 int privacy_manager_client_foreach_get_privacy_info(const char *package_id, privacy_manager_client_privacy_info_cb callback, void* user_data)
 {
-	int retval;
-	bool res;
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    int retval;
+    bool res;
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	std::list < std::pair <std::string, bool > > list;
+    std::list < std::pair <std::string, bool > > list;
 
-	retval = pInst->getAppPackagePrivacyInfo(std::string(package_id), list);
-	if (retval != PRIV_MGR_ERROR_SUCCESS)
-		return retval;
-	if (list.size() == 0)
-		return PRIV_MGR_ERROR_NO_DATA;
+    retval = pInst->getAppPackagePrivacyInfo(std::string(package_id), list);
+    if (retval != PRIV_MGR_ERROR_SUCCESS)
+        return retval;
+    if (list.size() == 0)
+        return PRIV_MGR_ERROR_NO_DATA;
 
-	for (std::list < std::pair <std::string, bool > >::iterator iter = list.begin(); iter != list.end(); ++iter)
-	{
-		privacy_info_client_s *privacy_info_client_s = NULL;
-		retval = create_privacy_info_client_s(iter->first.c_str(), iter->second, &privacy_info_client_s);
-		res = callback(privacy_info_client_s, user_data);
-		privacy_info_client_s_destroy(privacy_info_client_s);
-		if (!res)
-			break;
-	}
-	return PRIV_MGR_ERROR_SUCCESS;
+    for (std::list < std::pair <std::string, bool > >::iterator iter = list.begin(); iter != list.end(); ++iter)
+    {
+        privacy_info_client_s *privacy_info_client_s = NULL;
+        retval = create_privacy_info_client_s(iter->first.c_str(), iter->second, &privacy_info_client_s);
+        res = callback(privacy_info_client_s, user_data);
+        privacy_info_client_s_destroy(privacy_info_client_s);
+        if (!res)
+            break;
+    }
+    return PRIV_MGR_ERROR_SUCCESS;
 
 }
 int privacy_manager_client_set_package_privacy(const char *package_id, const char *privacy_id, bool enable)
 {
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	return pInst->setPrivacySetting(package_id, privacy_id, enable);
+    return pInst->setPrivacySetting(package_id, privacy_id, enable);
 }
 
 int privacy_manager_client_check_user_consented(const char *package_id, bool *consented)
 {
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	return pInst->isUserPrompted(std::string(package_id), *consented);
+    return pInst->isUserPrompted(std::string(package_id), *consented);
 }
 
 int privacy_manager_client_set_user_consented(const char *package_id, bool consented)
 {
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	return pInst->setUserPrompted(std::string(package_id), consented);
+    return pInst->setUserPrompted(std::string(package_id), consented);
 }
 
 int privacy_manager_client_foreach_all_privacy(privacy_manager_client_all_privacy_info_cb callback, void* user_data)
 {
-	int retval;
-	bool res;
+    int retval;
+    bool res;
 
-	std::list < std::string > privacyList;
-	retval = PrivacyIdInfo::getAllPrivacyId(privacyList);
-	if (retval != PRIV_MGR_ERROR_SUCCESS)
-		return retval;
-	if (privacyList.size() == 0)
-		return PRIV_MGR_ERROR_NO_DATA;
+    std::list < std::string > privacyList;
+    retval = PrivacyIdInfo::getAllPrivacyId(privacyList);
+    if (retval != PRIV_MGR_ERROR_SUCCESS)
+        return retval;
+    if (privacyList.size() == 0)
+        return PRIV_MGR_ERROR_NO_DATA;
 
-	for (std::list < std::string >::iterator iter = privacyList.begin(); iter != privacyList.end(); ++iter)
-	{
-		privacy_info_client_s *privacy_info_client_s = NULL;
-		retval = create_privacy_info_client_s(iter->c_str(), false, &privacy_info_client_s);
-		res = callback(privacy_info_client_s, user_data);
-		privacy_info_client_s_destroy(privacy_info_client_s);
-		if (!res)
-			break;
-	}
+    for (std::list < std::string >::iterator iter = privacyList.begin(); iter != privacyList.end(); ++iter)
+    {
+        privacy_info_client_s *privacy_info_client_s = NULL;
+        retval = create_privacy_info_client_s(iter->c_str(), false, &privacy_info_client_s);
+        res = callback(privacy_info_client_s, user_data);
+        privacy_info_client_s_destroy(privacy_info_client_s);
+        if (!res)
+            break;
+    }
 
-	return PRIV_MGR_ERROR_SUCCESS;
+    return PRIV_MGR_ERROR_SUCCESS;
 }
 
 int privacy_manager_client_foreach_package_list_by_privacy(const char *privacy_id, privacy_manager_client_packages_by_privacy_cb callback, void* user_data)
 {
-	int retval;
-	bool res;
-	PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    int retval;
+    bool res;
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
 
-	std::list < std::pair < std::string, bool > > packageList;
-	retval = pInst->getAppPackagesbyPrivacyId(std::string(privacy_id), packageList);
+    std::list < std::pair < std::string, bool > > packageList;
+    std::list < std::pair < std::string, bool > > tempPackageList;
 
-	if (retval != PRIV_MGR_ERROR_SUCCESS)
-		return retval;
-	if (packageList.size() == 0)
-		return PRIV_MGR_ERROR_NO_DATA;
+    retval = pInst->getAppPackagesbyPrivacyId(std::string(privacy_id), tempPackageList);
 
-	for (std::list < std::pair < std::string, bool > >::iterator iter = packageList.begin(); iter != packageList.end(); ++iter)
-	{
-		res = callback(iter->first.c_str(), iter->second, user_data);
-		if (!res)
-			break;
-	}
+    if (retval != PRIV_MGR_ERROR_SUCCESS)
+        return retval;
+    if (tempPackageList.size() == 0)
+    {
+        return PRIV_MGR_ERROR_NO_DATA;
+    }
+    else
+    {
+        for(std::list<std::pair<std::string,bool>>::iterator iter = tempPackageList.begin(); iter != tempPackageList.end(); ++iter)
+        {
+            pkgmgrinfo_pkginfo_h handle;
+            handle = NULL;
+            int ret = pkgmgrinfo_pkginfo_get_pkginfo(iter->first.c_str(), &handle);
 
-	return PRIV_MGR_ERROR_SUCCESS;
+            if( ret == PMINFO_R_OK && handle != NULL )
+            {
+                packageList.push_back( std::pair < std::string, bool >(iter->first, iter->second) );
+            }
+            pkgmgrinfo_pkginfo_destroy_pkginfo(handle);
+        }
+    }
+    if(packageList.size() == 0)
+        return PRIV_MGR_ERROR_NO_DATA;
+
+    for (std::list < std::pair < std::string, bool > >::iterator iter = packageList.begin(); iter != packageList.end(); ++iter)
+    {
+        res = callback(iter->first.c_str(), iter->second, user_data);
+        if (!res)
+            break;
+    }
+
+    return PRIV_MGR_ERROR_SUCCESS;
+}
+
+int privacy_manager_client_update_privacy(const char *package_id, const char** privilege_list)
+{
+    PrivacyManagerClient* pInst = PrivacyManagerClient::getInstance();
+    std::list < std::string > privilegeList;
+
+    while (*privilege_list[0] != '\0')
+    {
+        privilegeList.push_back(std::string(*privilege_list++));
+    }
+
+    int retval = pInst->updatePackagePrivacyInfo(std::string(package_id), privilegeList, false);
+
+    return retval;
 }

@@ -83,8 +83,8 @@ PrivacyManagerServer::setPrivacySetting(const std::string pkgId, const std::stri
 	res = m_notificationServer.notifySettingChanged(pkgId, privacyId);
 	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, res, , "NotificationServer::notifySettingChanged : %d", res);
 
-	res = setPermissions(pkgId, privacyId, enabled);
-	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, res, , "PrivacyManagerServer::setPermissions : %d", res);
+//	res = setPermissions(pkgId, privacyId, enabled);
+//	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, res, , "PrivacyManagerServer::setPermissions : %d", res);
 
 	return res;
 }
@@ -99,6 +99,12 @@ int
 PrivacyManagerServer::getAppPackagePrivacyInfo(const std::string pkgId, std::list < std::pair < std::string, bool > >& privacyInfoList)
 {
 	return PrivacyDb::getInstance()->getAppPackagePrivacyInfo(pkgId, privacyInfoList);
+}
+
+int
+PrivacyManagerServer::getAppPackagesbyPrivacyId(const std::string privacyId, std::list < std::pair < std::string, bool > >& list) const
+{
+	return PrivacyDb::getInstance()->getAppPackagesbyPrivacyId(privacyId, list);
 }
 
 
@@ -360,7 +366,7 @@ PrivacyManagerServer::notifyUserNotConsented(const std::string pkgId, const std:
 	char* errormsg = NULL;
 	DoNotificationFunc = reinterpret_cast<int(*)(const char*)>(dlsym(so_handle, "notification_status_message_post"));
 	errormsg = dlerror();
-	TryReturn(errormsg == NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, dlclose(so_handle), "Failed to find symbol");
+	TryReturn(errormsg == NULL && DoNotificationFunc != NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, dlclose(so_handle), "Failed to find symbol");
 
 	DoNotificationFunc(notifyString);
 	dlclose(so_handle);

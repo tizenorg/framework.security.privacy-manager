@@ -51,12 +51,10 @@ int SocketClient::connect()
 	res = fcntl(m_socketFd, F_SETFL, flags | O_NONBLOCK);
 	TryReturn( m_socketFd != -1, PRIV_MGR_ERROR_IPC_ERROR, , "fcntl : %s", strerror(errno));
 
+	int tmpSockLen = strlen(m_serverAddress.c_str());
 	bzero(&remote, sizeof(remote));
 	remote.sun_family = AF_UNIX;
-    if(strlen(m_serverAddress.c_str()) <= strlen(remote.sun_path))
-        strcpy(remote.sun_path, m_serverAddress.c_str());
-    else
-        return PRIV_MGR_ERROR_SYSTEM_ERROR;
+	strncpy(remote.sun_path, m_serverAddress.c_str(), tmpSockLen);
 	res = ::connect(m_socketFd, (struct sockaddr *)&remote, SUN_LEN(&remote));
 	TryReturn( res != -1, PRIV_MGR_ERROR_IPC_ERROR, , "connect : %s", strerror(errno));
 

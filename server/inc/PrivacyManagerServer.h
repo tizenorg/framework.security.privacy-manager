@@ -47,6 +47,8 @@ public:
 
 	int getAppPackagePrivacyInfo(const std::string pkgId, std::list < std::pair < std::string, bool > > & list);
 
+	int getAppPackagesbyPrivacyId(const std::string privacyId, std::list < std::pair < std::string, bool > >& list) const;
+
 	int setPrivacySetting(const std::string pkgId, const std::string privacyId, bool enabled);
 
 	int addAppPackagePrivacyInfo(const std::string pkgcId, const std::list < std::string > privilegeList, bool privacyPopupRequired);

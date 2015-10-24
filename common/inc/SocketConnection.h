@@ -156,7 +156,7 @@ public:
 	template < typename T >
 	int  read (std::list<T>& list)
 	{
-		int length;
+		int length = 0;
 		int res = read(length);
 		TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "read : %d", res);
 
@@ -178,7 +178,7 @@ public:
 	}
 
 	template < typename K, typename P >
-	void read (std::pair<K, P>& pair)
+	int read (std::pair<K, P>& pair)
 	{
 		int res = read( pair.first);
 		TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "read : %d", res);

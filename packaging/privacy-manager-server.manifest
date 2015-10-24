@@ -2,17 +2,26 @@
         <define>
                 <domain name="privacy-manager" />
                 <provide>
-                        <label name="privacy-manager::daemon" />
                         <label name="privacy-manager::db" />
                 </provide>
         		<request>
-					<smack request="security-server::api-app-permissions" type="w"/>
+                    <smack request="tizen::vconf::setting::admin" type="rw" />
+                    <smack request="device::app_logging" type="w" />
+                    <smack request="device::sys_logging" type="w" />
+                    <smack request="dbus" type="r" />
+                    <smack request="privacy-manager::db" type="rw" />
+					<smack request="security-server::api-app-permissions" type="w" />
+					<smack request="security-server::api-privilege-by-pid" type="w" />
+					<smack request="pkgmgr::db" type="rl" />
 		        </request>
         </define>
         <request>
-                <domain name="_" />
+                <domain name="privacy-manager" />
         </request>
         <assign>
-		        <filesystem path="/opt/dbspace/.privacylist.db" label="privacy-manager::db" exec_label="none" />
-		</assign>
+                <filesystem path="/usr/bin/privacy-manager-server" label="privacy-manager" exec_label="privacy-manager"/>
+                <filesystem path="/usr/lib/*" label="_" exec_label="none" />
+                <filesystem path="/usr/share/license/privacy-manager-server" label="_"/>
+                <filesystem path="/opt/dbspace/.privacylist.db" label="privacy-manager::db" exec_label="none" />
+        </assign>
 </manifest>

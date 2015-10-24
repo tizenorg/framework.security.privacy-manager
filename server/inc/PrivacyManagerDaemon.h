@@ -17,11 +17,9 @@
 #ifndef _PRIVACY_MANAGER_DAEMON_H_
 #define _PRIVACY_MANAGER_DAEMON_H_
 
-#include <privacy_manager_client_types.h>
+#include <SocketService.h>
 
-class SocketService;
-
-class EXTERN_API PrivacyManagerDaemon
+class PrivacyManagerDaemon
 {
 private:
 	static PrivacyManagerDaemon* pInstance;

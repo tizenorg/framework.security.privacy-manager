@@ -18,6 +18,7 @@
 #include <PrivacyManagerServer.h>
 #include <dlog.h>
 #include <Utils.h>
+#include <security-server.h>
 
 void
 PrivacyInfoService::addPrivacyInfo(SocketConnection* pConnector)
@@ -79,13 +80,29 @@ PrivacyInfoService::getAppPackagePrivacyInfo(SocketConnection* pConnector)
 	pConnector->read(&pkgId);
 	PrivacyManagerServer* pPrivacyManagerServer = PrivacyManagerServer::getInstance();
 
-	
 	std::list < std::pair < std::string, bool > > infoList;
-	
+
 	int res = pPrivacyManagerServer->getAppPackagePrivacyInfo(pkgId, infoList);
 
 	pConnector->write( res );
 	pConnector->write( infoList );
+}
+
+void
+PrivacyInfoService::getAppPackagesbyPrivacyId(SocketConnection* pConnector)
+{
+	std::string privacyId;
+
+	pConnector->read(&privacyId);
+	PrivacyManagerServer* pPrivacyManagerServer = PrivacyManagerServer::getInstance();
+
+	
+	std::list < std::pair < std::string, bool > > pkgList;
+	
+	int res = pPrivacyManagerServer->getAppPackagesbyPrivacyId(privacyId, pkgList);
+
+	pConnector->write( res );
+	pConnector->write( pkgList );
 }
 
 void
@@ -130,4 +147,31 @@ PrivacyInfoService::notifyUserNotConsented(SocketConnection* pConnector)
 	int res = pPrivacyManagerServer->notifyUserNotConsented(pkgId, privacyId);
 	pConnector->write( res );
 
+}
+
+int
+PrivacyInfoService::checkPrivacySettingPermission(int fd)
+{
+	int res = PRIV_MGR_ERROR_SUCCESS;
+	int retval = security_server_check_privilege_by_sockfd(fd, "privacy-manager::write", "w");
+	if(retval != SECURITY_SERVER_API_SUCCESS)
+	{
+		LOGE("This application does not have permission to read privacy");
+		return PRIV_MGR_ERROR_PERMISSION_DENIED;
+	}
+
+	return res;
+}
+
+int
+PrivacyInfoService::checkPrivacyReadPermission(int fd)
+{
+	int retval = security_server_check_privilege_by_sockfd(fd, "privacy-manager::read", "r");
+	if(retval != SECURITY_SERVER_API_SUCCESS)
+	{
+		LOGE("This application does not have permission to read privacy");
+		return PRIV_MGR_ERROR_PERMISSION_DENIED;
+	}
+
+	return PRIV_MGR_ERROR_SUCCESS;
 }

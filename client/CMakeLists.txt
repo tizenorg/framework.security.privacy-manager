@@ -8,7 +8,7 @@ SET(LIBDIR "\${prefix}/lib")
 SET(INCLUDEDIR "\${prefix}/include")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(${this_target} REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info capi-system-info vconf capi-appfw-app-manager capi-appfw-package-manager)
+pkg_check_modules(${this_target} REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info capi-system-info vconf aul)
 
 FOREACH(flag ${${this_target}_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -27,7 +27,7 @@ SET(client_src_dir "${CMAKE_SOURCE_DIR}/client/src")
 SET(client_include_dir "${CMAKE_SOURCE_DIR}/client/inc/")
 SET(common_src_dir "${CMAKE_SOURCE_DIR}/common/src/")
 SET(common_include_dir "${CMAKE_SOURCE_DIR}/common/inc/")
-#SET(lib_include_dir 
+#SET(lib_include_dir
 #	"/usr/include/dbus-1.0"
 #	"/usr/include/aul"
 #)

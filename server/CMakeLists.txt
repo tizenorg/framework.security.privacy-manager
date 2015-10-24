@@ -8,7 +8,7 @@ SET(LIBDIR "\${prefix}/lib")
 SET(INCLUDEDIR "\${prefix}/include")
 
 INCLUDE(FindPkgConfig)
-pkg_check_modules(pkgs REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info capi-system-info security-server libsmack vconf)
+pkg_check_modules(pkgs REQUIRED dlog sqlite3 dbus-1 dbus-glib-1 db-util pkgmgr-info capi-system-info security-server vconf gio-2.0 libsystemd-daemon)
 
 FOREACH(flag ${pkgs_CFLAGS})
 	SET(EXTRA_CFLAGS "${EXTRA_CFLAGS} ${flag}")
@@ -33,11 +33,17 @@ SET(dbus_include_dir "/usr/include/dbus-1.0")
 ADD_DEFINITIONS("-fvisibility=hidden")
 ADD_DEFINITIONS("-Wall -Werror")
 ADD_DEFINITIONS("-DDLOG_ERROR_ENABLED")
-OPTION (FILTER_LISTED_PKG "FILTER PKG BY LIST" ON)
-IF(FILTER_LISTED_PKG)
-    MESSAGE("FILTER PKGs BY FILTERING LIST")
-    ADD_DEFINITIONS("-D__FILTER_LISTED_PKG")
-ENDIF(FILTER_LISTED_PKG)
+OPTION (FILTER_PRELOADED_PKG "FILTER PRELOADEDPKG BY LIST" ON)
+IF(FILTER_PRELOADED_PKG)
+	MESSAGE("FILTER PKGs BY PRELOADED PKG")
+	ADD_DEFINITIONS("-D__FILTER_PRELOADED_PKG")
+ENDIF(FILTER_PRELOADED_PKG)
+
+OPTION (LOCATION_FILTER_LISTED_PKG "LOCATION FILTER PKG BY LIST" ON)
+IF(LOCATION_FILTER_LISTED_PKG)
+	MESSAGE("LOCATION FILTER PKGs BY FILTERING LIST")
+	ADD_DEFINITIONS("-D__LOCATION_FILTER_LISTED_PKG")
+ENDIF(LOCATION_FILTER_LISTED_PKG)
 
 ###################################################################################################
 ## for privacy-manager-server (executable)
@@ -54,31 +60,29 @@ SET(PRIVACY_MANAGER_SERVER_SOURCES
 	${common_src_dir}/SocketStream.cpp
 	${common_src_dir}/PrivacyDb.cpp
 	${common_src_dir}/PrivacyIdInfo.cpp
-    #	${server_src_dir}/main.cpp
+   ${server_src_dir}/main.cpp
 	${server_src_dir}/SocketService.cpp
 	${server_src_dir}/PrivacyManagerDaemon.cpp
 	${server_src_dir}/service/PrivacyInfoService.cpp
 	${server_src_dir}/PrivacyManagerServer.cpp
 	${server_src_dir}/NotificationServer.cpp
-	${server_src_dir}/privacy_manager_daemon.cpp
+	#${server_src_dir}/privacy_manager_daemon.cpp
 	)
 SET(PRIVACY_MANAGER_SERVER_HEADERS
-	${server_include_dir}/privacy_manager_daemon.h
+	#${server_include_dir}/privacy_manager_daemon.h
     #	${server_include_dir}/SocketService.h
     #   ${server_include_dir}/PrivacyManagerDaemon.h
     #	${common_include_dir}/SocketConnection.h
     #	${common_include_dir}/SocketConnection.h
 )
-SET(PRIVACY_MANAGER_SERVER_LDFLAGS " -module -avoid-version ")
-SET(PRIVACY_MANAGER_SERVER_CFLAGS  " ${CFLAGS} -fPIC ")
+SET(PRIVACY_MANAGER_SERVER_LDFLAGS " -module -avoid-version")
+SET(PRIVACY_MANAGER_SERVER_CFLAGS  " ${CFLAGS} -fPIE ")
 #SET(PRIVACY_MANAGER_SERVER_LIBADD " ")
 
 ADD_DEFINITIONS("-DLOG_TAG=\"PRIVACY-MANAGER-SERVER\"")
-ADD_LIBRARY(privacy-manager-server SHARED ${PRIVACY_MANAGER_SERVER_SOURCES})
-TARGET_LINK_LIBRARIES(privacy-manager-server ${pkgs_LDFLAGS} ${pkgs_LIBRARIES})
+ADD_EXECUTABLE(privacy-manager-server ${PRIVACY_MANAGER_SERVER_SOURCES})
+TARGET_LINK_LIBRARIES(privacy-manager-server ${pkgs_LDFLAGS} ${pkgs_LIBRARIES} "-ldl -pie")
 SET_TARGET_PROPERTIES(privacy-manager-server PROPERTIES COMPILE_FLAGS "${PRIVACY_MANAGER_SERVER_CFLAGS}")
-SET_TARGET_PROPERTIES(privacy-manager-server PROPERTIES SOVERSION ${API_VERSION})
-SET_TARGET_PROPERTIES(privacy-manager-server PROPERTIES VERSION ${VERSION})
 ###################################################################################################
 
 SET(PC_NAME privacy-manager-server)
@@ -88,6 +92,6 @@ SET(PC_CFLAGS -I\${includedir}/privacy_manager)
 
 CONFIGURE_FILE(../privacy-manager-server.pc.in privacy-manager-server.pc @ONLY)
 
-INSTALL(TARGETS privacy-manager-server DESTINATION ../lib COMPONENT RuntimeLibraries)
+INSTALL(TARGETS privacy-manager-server DESTINATION ../bin COMPONENT RuntimeLibraries)
 INSTALL(FILES ${CMAKE_CURRENT_BINARY_DIR}/privacy-manager-server.pc DESTINATION ../lib/pkgconfig)
-INSTALL(FILES ${PRIVACY_MANAGER_SERVER_HEADERS} DESTINATION ../include/privacy_manager)
+INSTALL(FILES ${PRIVACY_MANAGER_SERVER_HEADERS} DESTINATION ../include/privacy_manager/server)

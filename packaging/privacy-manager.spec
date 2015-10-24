@@ -1,11 +1,12 @@
 Name:    privacy-manager-server
 Summary: Privacy Management
 Version: 0.0.6
-Release: 0
+Release: 1
 Group:   System/Libraries
 License: Apache-2.0
 Source0: %{name}-%{version}.tar.gz
 Source1: privacy-manager-server.service
+Source2: privacy-manager-server.socket
 BuildRequires: cmake
 BuildRequires: pkgconfig(dlog)
 BuildRequires: pkgconfig(glib-2.0)
@@ -18,11 +19,11 @@ BuildRequires: pkgconfig(pkgmgr-info)
 BuildRequires: pkgconfig(capi-system-info)
 BuildRequires: pkgconfig(libprivilege-control)
 BuildRequires: pkgconfig(security-server)
-BuildRequires: pkgconfig(capi-appfw-app-manager)
-BuildRequires: pkgconfig(capi-appfw-package-manager)
 BuildRequires: pkgconfig(libsmack)
 BuildRequires: pkgconfig(vconf)
+BuildRequires: pkgconfig(libsystemd-daemon)
 BuildRequires: gettext-tools
+BuildRequires: pkgconfig(aul)
 
 Requires(post):   /sbin/ldconfig
 Requires(postun): /sbin/ldconfig
@@ -98,10 +99,21 @@ cp res/opt/dbspace/.privacylist.db /%{buildroot}/opt/dbspace/
 mkdir -p %{buildroot}/usr/share/privacy-manager/
 cp res/usr/share/privacy-manager/privacy-filter-list.ini %{buildroot}/usr/share/privacy-manager/
 cp res/usr/share/privacy-manager/privacy-location-filter-list.ini %{buildroot}/usr/share/privacy-manager/
+mkdir -p %{buildroot}/etc/vasum/vsmzone.resource/
+cat << EOF > %{buildroot}/etc/vasum/vsmzone.resource/privacy-manager.res
+LINK=["/opt/dbspace/.privacy.db,/opt/dbspace/.privacy.db"]
+LINK=["/opt/dbspace/.privacylist.db,/opt/dbspace/.privacylist.db"]
+EOF
 
 %make_install
-
 mkdir -p %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants
+mkdir -p %{buildroot}%{_libdir}/systemd/system/sockets.target.wants
+
+install -m 0644 %{SOURCE1} %{buildroot}%{_libdir}/systemd/system/
+install -m 0644 %{SOURCE2} %{buildroot}%{_libdir}/systemd/system/
+
+ln -sf ../%{SOURCE1} %{buildroot}%{_libdir}/systemd/system/multi-user.target.wants/
+ln -sf ../%{SOURCE2} %{buildroot}%{_libdir}/systemd/system/sockets.target.wants/
 
 %clean
 rm -rf %{buildroot}
@@ -118,23 +130,26 @@ fi
 rm /usr/bin/privacy_manager_create_clean_db.sh
 rm /usr/bin/privacy_db.sql
 
+/usr/sbin/setcap cap_chown,cap_dac_override,cap_lease+eip /usr/bin/privacy-manager-server
+
 %postun
 /sbin/ldconfig
 
 %files -n privacy-manager-server
-%defattr(-,root,root,-)
+%defattr(-,system,system,-)
 %manifest packaging/privacy-manager-server.manifest
-%{_libdir}/libprivacy-manager-server.so*
+%{_bindir}/*
+%{_libdir}/systemd/*
 /usr/share/license/privacy-manager-server
 /opt/dbspace/.privacylist.db
-/usr/bin/*
+/etc/vasum/vsmzone.resource/privacy-manager.res
+%{_libdir}/systemd/system/*
 
 %files -n privacy-manager-server-devel
-%{_includedir}/privacy_manager/privacy_manager_daemon.h
 %{_libdir}/pkgconfig/privacy-manager-server.pc
 
 %files -n privacy-manager-client
-%defattr(-,root,root,-)
+%defattr(-,system,system,-)
 %manifest packaging/privacy-manager-client.manifest
 %{_libdir}/libprivacy-manager-client.so*
 /usr/share/license/privacy-manager-client
@@ -143,7 +158,7 @@ rm /usr/bin/privacy_db.sql
 /usr/etc/package-manager/parserlib/libprivileges.so
 
 %files -n privacy-manager-client-devel
-%defattr(-,root,root,-)
+%defattr(-,system,system,-)
 %{_libdir}/pkgconfig/privacy-manager-client.pc
 
 %{_includedir}/privacy_manager/PrivacyManagerClient.h

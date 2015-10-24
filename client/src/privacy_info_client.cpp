@@ -20,6 +20,7 @@
 #include <PrivacyManagerClient.h>
 #include <privacy_manager_client.h>
 #include <privacy_manager_client_types.h>
+#include <Utils.h>
 #include "privacy_manager_client_internal_types.h"
 
 int privacy_info_client_s_destroy(privacy_info_client_s* privacy_info)
@@ -38,7 +39,7 @@ int privacy_info_client_get_privacy_id(privacy_info_client_s* privacy_info, char
 {
 	int size = strlen(privacy_info->privacy_id);
 	*privacy_id = (char*) calloc(1, size + 1);
-
+	TryReturn(*privacy_id != NULL, PRIV_MGR_ERROR_OUT_OF_MEMORY, ,"[PRIV_MGR_ERROR_OUT_OF_MEMORY] privacy_id's calloc Failed");
 	memcpy (*privacy_id, privacy_info->privacy_id, size);
 
 	return PRIV_MGR_ERROR_SUCCESS;
@@ -54,6 +55,7 @@ int privacy_info_client_get_privacy_display_name(privacy_info_client_s* privacy_
 
 	int size = strlen(displayName.c_str());
 	*name = (char*) calloc(1, size + 1);
+	TryReturn(*name != NULL, PRIV_MGR_ERROR_OUT_OF_MEMORY, ,"[PRIV_MGR_ERROR_OUT_OF_MEMORY] name's calloc Failed");
 	memcpy (*name, displayName.c_str(), size);
 
 	return PRIV_MGR_ERROR_SUCCESS;
@@ -68,6 +70,7 @@ int privacy_info_client_get_privacy_display_name_string_id(privacy_info_client_s
 
 	int size = strlen(displayNameStringId.c_str());
 	*name_string_id = (char*) calloc(1, size + 1);
+	TryReturn(*name_string_id != NULL, PRIV_MGR_ERROR_OUT_OF_MEMORY, ,"[PRIV_MGR_ERROR_OUT_OF_MEMORY] name_string_id's calloc Failed");
 	memcpy (*name_string_id, displayNameStringId.c_str(), size);
 
 	return PRIV_MGR_ERROR_SUCCESS;
@@ -82,6 +85,7 @@ int privacy_info_client_get_privacy_description(privacy_info_client_s* privacy_i
 
 	int size = strlen(desc.c_str());
 	*description = (char*) calloc(1, size + 1);
+	TryReturn(*description != NULL, PRIV_MGR_ERROR_OUT_OF_MEMORY, ,"[PRIV_MGR_ERROR_OUT_OF_MEMORY] description's calloc Failed");
 	memcpy (*description, desc.c_str(), size);
 
 	return PRIV_MGR_ERROR_SUCCESS;
@@ -96,6 +100,7 @@ int privacy_info_client_get_privacy_description_string_id(privacy_info_client_s*
 
 	int size = strlen(descStringId.c_str());
 	*description_string_id = (char*) calloc(1, size + 1);
+	TryReturn(*description_string_id != NULL, PRIV_MGR_ERROR_OUT_OF_MEMORY, ,"[PRIV_MGR_ERROR_OUT_OF_MEMORY] description_string_id's calloc Failed");
 	memcpy (*description_string_id, descStringId.c_str(), size);
 
 	return PRIV_MGR_ERROR_SUCCESS;

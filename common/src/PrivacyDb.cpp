@@ -48,7 +48,10 @@ bool PrivacyDb::isFilteredPackage(const std::string pkgId) const
 	int res = pkgmgrinfo_pkginfo_get_pkginfo(pkgId.c_str(), &handle);
 
 	if (res != PMINFO_R_OK)
+	{
+		LOGE("Failed to get pkgInfo");
 		return false;
+	}
 
 	bool preloaded = false;
 	res = pkgmgrinfo_pkginfo_is_preload(handle, &preloaded);
@@ -56,8 +59,10 @@ bool PrivacyDb::isFilteredPackage(const std::string pkgId) const
 
 	return preloaded;
 #elif __FILTER_LISTED_PKG
-	if (m_filteredPkgList.empty())
+	if (m_filteredPkgList.empty()){
+		LOGD("filter pkg list is empty");
 		return false;
+	}
 
 	std::map < std::string, bool >::iterator it;
 	if ( (it = m_filteredPkgList.find(pkgId)) != m_filteredPkgList.end())
@@ -136,7 +141,7 @@ PrivacyDb::getPrivacyAppPackages(std::list <std::string>& list) const
 	while ( sqlite3_step(pStmt.get()) == SQLITE_ROW )
 	{
 		const char* pValue =  reinterpret_cast < const char* > (sqlite3_column_text(pStmt.get(), 0));
-
+		TryReturn(pValue != NULL, PRIV_MGR_ERROR_NO_DATA, , "[PRIV_MGR_ERROR_NO_DATA] Failed to get pkg id");
 		SECURE_LOGD("PkgId found : %s ", pValue);
 		std::string pkgId = std::string(pValue);
 
@@ -156,6 +161,7 @@ PrivacyDb::getPrivacyAppPackages(std::list <std::string>& list) const
 		const char* pValue =  reinterpret_cast < const char* > (sqlite3_column_text(pLocationStmt.get(), 0));
 
 		SECURE_LOGD("PkgId found [Location] : %s ", pValue);
+		TryReturn(pValue != NULL, PRIV_MGR_ERROR_NO_DATA, , "[PRIV_MGR_ERROR_NO_DATA] Failed to get pkg id");
 		std::string pkgId = std::string(pValue);
 
 		if (isLocationFilteredPackage(pkgId))
@@ -174,6 +180,7 @@ PrivacyDb::getPrivacyAppPackages(std::list <std::string>& list) const
 int
 PrivacyDb::getAppPackagePrivacyInfo(const std::string pkgId, std::list < std::pair < std::string, bool > >& privacyInfoList) const
 {
+	LOGD("getAppPackagePrivacyInfo... : %s", pkgId.c_str());
 	static const std::string query = "SELECT PRIVACY_ID, IS_ENABLED from PrivacyInfo where PKG_ID=?";
 
 	openDb(PRIVACY_DB_PATH.c_str(), pDbHandler, SQLITE_OPEN_READONLY);
@@ -185,6 +192,7 @@ PrivacyDb::getAppPackagePrivacyInfo(const std::string pkgId, std::list < std::pa
 	while ( (res= sqlite3_step(pStmt.get())) == SQLITE_ROW )
 	{
 		const char* privacyId =  reinterpret_cast < const char* > (sqlite3_column_text(pStmt.get(), 0));
+		TryReturn(privacyId != NULL, PRIV_MGR_ERROR_NO_DATA, , "[PRIV_MGR_ERROR_NO_DATA] Failed to get privacy id");
 		if (strncmp(privacyId, locationPrivacyKey, strlen(privacyId)) == 0)
 		{
 			if (isLocationFilteredPackage(pkgId))
@@ -258,6 +266,7 @@ PrivacyDb::addAppPackagePrivacyInfo(const std::string pkgId, const std::list < s
 int
 PrivacyDb::removeAppPackagePrivacyInfo(const std::string pkgId)
 {
+	LOGD("removeAppPackagePrivacyInfo");
 	static const std::string pkgInfoQuery("DELETE FROM PackageInfo WHERE PKG_ID=?");
 	static const std::string privacyQuery("DELETE FROM PrivacyInfo WHERE PKG_ID=?");
 
@@ -355,6 +364,7 @@ PrivacyDb::getAppPackagesbyPrivacyId(std::string privacyId, std::list < std::pai
 	{
 		const char* pPkgId =  reinterpret_cast < const char* > (sqlite3_column_text(pStmt.get(), 0));
 		bool isEnabled = sqlite3_column_int(pStmt.get(), 1) > 0 ? true : false;
+		TryReturn(pPkgId != NULL, PRIV_MGR_ERROR_NO_DATA, ,"[PRIV_MGR_ERROR_NO_DATA] Fail to get pkgid");
         std::string pkgId = std::string(pPkgId);
 		if (privacyId == locationPrivacyKey)
 		{
@@ -377,6 +387,107 @@ PrivacyDb::getAppPackagesbyPrivacyId(std::string privacyId, std::list < std::pai
 	}
 
 	return PRIV_MGR_ERROR_SUCCESS;
+}
+
+int
+PrivacyDb::addPrivacyListToPackage(const std::string pkgId, const std::list < std::string > &list )
+{
+	static const std::string privacyQuery("INSERT INTO PrivacyInfo(PKG_ID, PRIVACY_ID, IS_ENABLED) VALUES(?, ?, ?)");
+
+	openDb(PRIVACY_DB_PATH.c_str(), pDbHandler, SQLITE_OPEN_READWRITE);
+
+	for (std::list <std::string>::const_iterator iter = list.begin(); iter != list.end(); ++iter)
+	{
+		SECURE_LOGD("add privacy: %s", iter->c_str());
+		prepareDb(pDbHandler, privacyQuery.c_str(), pPrivacyStmt);
+
+		int res = sqlite3_bind_text(pPrivacyStmt.get(), 1, pkgId.c_str(), -1, SQLITE_TRANSIENT);
+		TryReturn( res == SQLITE_OK, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_bind_int : %d", res);
+
+		res = sqlite3_bind_text(pPrivacyStmt.get(), 2, iter->c_str(), -1, SQLITE_TRANSIENT);
+		TryReturn( res == SQLITE_OK, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_bind_text : %d", res);
+
+		// Before setting app and popup is ready, default value is true
+		res = sqlite3_bind_int(pPrivacyStmt.get(), 3, 1);
+		TryReturn( res == SQLITE_OK, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_bind_int : %d", res);
+
+		res = sqlite3_step(pPrivacyStmt.get());
+		TryReturn( res == SQLITE_DONE || res == SQLITE_CONSTRAINT, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_step : %d", res);
+
+		sqlite3_reset(pPrivacyStmt.get());
+	}
+	return 0;
+}
+
+int
+PrivacyDb::removePrivacyListToPackage(const std::string pkgId, const std::list < std::string > &list )
+{
+	static const std::string privacyQuery("DELETE FROM PrivacyInfo WHERE PKG_ID=? AND PRIVACY_ID=?");
+
+	openDb(PRIVACY_DB_PATH.c_str(), pDbHandler, SQLITE_OPEN_READWRITE);
+
+	for (std::list <std::string>::const_iterator iter = list.begin(); iter != list.end(); ++iter)
+	{
+		SECURE_LOGD("remove privacy: %s", iter->c_str());
+		prepareDb(pDbHandler, privacyQuery.c_str(), pPrivacyStmt);
+
+		int res = sqlite3_bind_text(pPrivacyStmt.get(), 1, pkgId.c_str(), -1, SQLITE_TRANSIENT);
+		TryReturn( res == SQLITE_OK, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_bind_int : %d", res);
+
+		res = sqlite3_bind_text(pPrivacyStmt.get(), 2, iter->c_str(), -1, SQLITE_TRANSIENT);
+		TryReturn( res == SQLITE_OK, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_bind_text : %d", res);
+
+		res = sqlite3_step(pPrivacyStmt.get());
+		TryReturn( res == SQLITE_DONE || res == SQLITE_CONSTRAINT, PRIV_MGR_ERROR_DB_ERROR, , "sqlite3_step : %d", res);
+
+		sqlite3_reset(pPrivacyStmt.get());
+	}
+
+	return 0;
+}
+
+int
+PrivacyDb::updatePackagePrivacyInfo(const std::string pkgId, const std::list< std::string > &list)
+{
+	std::list< std::pair <std::string, bool> > pkgPrivacyList;
+
+	std::list< std::string > removedList;
+	std::list< std::string > addedList;
+
+	int res = getAppPackagePrivacyInfo(pkgId, pkgPrivacyList);
+	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, PRIV_MGR_ERROR_DB_ERROR, , "failed to get appPackagePrivacyInfo %d", res);
+
+	// get removed privacy list
+	for_each(pkgPrivacyList.begin(), pkgPrivacyList.end(), [&](std::pair<std::string, bool> installedPrivacy) {
+			 std::list<std::string>::const_iterator it = find(list.begin(), list.end(), installedPrivacy.first);
+			 if(it == list.end())  // only exist in requestedlist
+			 {
+			 	removedList.push_back(installedPrivacy.first);
+			 }
+	});
+
+	// get addded privacy list
+	for_each(list.begin(), list.end(), [&](std::string requestedPrivacy) {
+			 bool exist = false;
+			 for_each(pkgPrivacyList.begin(), pkgPrivacyList.end(), [&](std::pair< std::string, bool > pkgPrivacy){
+					  if(!pkgPrivacy.first.compare(requestedPrivacy))
+			 				exist = true;
+					  });
+			 if(!exist)  // only exist in requestedlist
+			 {
+			 	addedList.push_back(requestedPrivacy);
+			 }
+	});
+
+	// remove privacy list
+	res = removePrivacyListToPackage(pkgId, removedList);
+	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, PRIV_MGR_ERROR_DB_ERROR, , "failed to remove appPackagePrivacyInfo %d", res);
+
+	// add privacy list
+	res = addPrivacyListToPackage(pkgId, addedList);
+	TryReturn( res == PRIV_MGR_ERROR_SUCCESS, PRIV_MGR_ERROR_DB_ERROR, , "failed to add appPackagePrivacyInfo %d", res);
+
+	return 0;
 }
 
 PrivacyDb::PrivacyDb(void)

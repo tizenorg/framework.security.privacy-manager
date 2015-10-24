@@ -67,6 +67,8 @@ public:
 	int getPrivaycDescriptionStringId(const std::string privacyId, std::string& descriptionStringId) const;
 
 	int notifyUserNotConsented(const std::string pkgId, const std::string privacyId) const;
+
+	int updatePackagePrivacyInfo(const std::string pkgId, const std::list<std::string> privilegeList, bool isServerOperation = false);
 };
 
 #endif // _PRIVACY_MANAGER_H_

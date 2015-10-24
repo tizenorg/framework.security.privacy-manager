@@ -28,8 +28,7 @@
 #include <unistd.h>
 #include <vconf.h>
 #include <pkgmgr-info.h>
-#include <app_manager.h>
-#include <package_manager.h>
+#include <aul.h>
 
 bool PrivacyChecker::m_isInitialized = false;
 std::map < std::string, std::pair<bool,bool> >PrivacyChecker::m_privacyCache;
@@ -112,28 +111,16 @@ int
 PrivacyChecker::getPackageId(std::string& pkgId)
 {
 	int pid = getpid();
-	char* app_id = NULL;
-	char* package_id = NULL;
+	char package_id[255];
 
-	int ret = app_manager_get_app_id(pid, &app_id);
-
-	if (ret != APP_MANAGER_ERROR_NONE || !app_id)
-	{
-		free(app_id);
+	int ret = aul_app_get_pkgid_bypid(pid, package_id, sizeof(package_id));
+	if (ret < 0) {
 		return PRIV_MGR_ERROR_SYSTEM_ERROR;
 	}
 
-	ret = package_manager_get_package_id_by_app_id(app_id, &package_id);
-	if (ret != PACKAGE_MANAGER_ERROR_NONE)
-	{
-		free(app_id);
-		free(package_id);
-		return PRIV_MGR_ERROR_SYSTEM_ERROR;
-	}
-
+	LOGD("get pkg id from aul : %s", package_id);
 	pkgId = package_id;
-	free(app_id);
-	free(package_id);
+
 	return PRIV_MGR_ERROR_SUCCESS;
 }
 
@@ -402,8 +389,8 @@ PrivacyChecker::check(const std::string pkgId, const std::string privacyId)
 	if (!m_isInitialized)
 		initialize();
 
-	m_pkgId = pkgId; // copy package id for core API + OSP API call privacy check together 
 	std::lock_guard < std::mutex > guard(m_cacheMutex);
+	m_pkgId = pkgId; // copy package id for core API + OSP API call privacy check together 
 	int res;
 
 	std::map < std::string, std::map < std::string, std::pair<bool,bool> > >::iterator iter = m_privacyInfoCache.find(pkgId);
@@ -569,7 +556,7 @@ PrivacyChecker::updateCache(std::string pkgId, std::map < std::string, std::pair
 	{
 		const char* privacyId =  reinterpret_cast < const char* > (sqlite3_column_text(pPrivacyStmt.get(), 0));
 		bool privacyEnabled = sqlite3_column_int(pPrivacyStmt.get(), 1) > 0 ? true : false;
-
+		TryReturn(privacyId != NULL, PRIV_MGR_ERROR_NO_DATA, ,"[PRIV_MGR_ERROR_NO_DATA] Failed to get privacy id.");
 		pkgCacheMap.insert(std::map < std::string, std::pair<bool,bool> >::value_type(std::string(privacyId), std::make_pair(privacyEnabled, false)));
 
 		SECURE_LOGD("Privacy found : %s %d", privacyId, privacyEnabled);

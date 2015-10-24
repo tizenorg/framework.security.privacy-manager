@@ -64,7 +64,8 @@ PrivacyIdInfo::initialize(void)
 			if (!isSupported)
 				continue;
 		}
-
+		TryReturn(privacyId != NULL, PRIV_MGR_ERROR_NO_DATA, ,"Fail to get Privacy ID");
+		TryReturn(privilegeId != NULL, PRIV_MGR_ERROR_NO_DATA, ,"Fail to get Privilege ID");
 		m_privilegeToPrivacyMap.insert(std::map < std::string, std::string >::value_type(std::string(privilegeId), std::string(privacyId)));
 	}
 
@@ -162,7 +163,7 @@ PrivacyIdInfo::getAllPrivacyId(std::list < std::string >& privacyIdList)
 			if (!isSupported)
 				continue;
 		}
-
+		TryReturn(privacyId != NULL, PRIV_MGR_ERROR_NO_DATA, , "[PRIV_MGR_ERROR_NO_DATA] Cannot find privacy string");
 		privacyIdList.push_back(std::string(privacyId));
 		//SECURE_LOGD(" privacy Id : %s", privacyId);
 	}
@@ -282,7 +283,7 @@ PrivacyIdInfo::getPrivaycDescriptionStringId(const std::string privacyId, std::s
 	if ( sqlite3_step(pStmt.get()) == SQLITE_ROW )
 	{
 		const char* pNameId = reinterpret_cast < const char* > (sqlite3_column_text(pStmt.get(), 1));
-
+		TryReturn( pNameId != NULL, PRIV_MGR_ERROR_NO_DATA, , "[PRIV_MGR_ERROR_NO_DATA] Cannot find privacy string");
 		descriptionStringId = pNameId;
 	}
 	else

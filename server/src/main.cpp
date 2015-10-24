@@ -22,7 +22,7 @@ main(int argc, char* argv[])
 {
 	PrivacyManagerDaemon* pDaemon = PrivacyManagerDaemon::getInstance();
 
-	pDaemon->inialize();
+	pDaemon->initialize();
 	pDaemon->start();
 
 	GMainLoop* pLoop;

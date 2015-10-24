@@ -48,7 +48,9 @@ NotificationServer::initialize(void)
 		return PRIV_MGR_ERROR_SUCCESS;
 	
     GError* pGerror = NULL;
+    #if !GLIB_CHECK_VERSION(2,35,0)
     g_type_init();
+    #endif
 
 	m_pDBusConnection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, &pGerror);
 	TryReturn(pGerror == NULL, PRIV_MGR_ERROR_SYSTEM_ERROR, g_error_free(pGerror), "g_dbus_get_sync : %s", pGerror->message);

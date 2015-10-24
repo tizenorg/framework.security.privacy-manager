@@ -26,6 +26,7 @@
 #include <SocketConnection.h>
 
 typedef void(*socketServiceCallback)(SocketConnection* pConnector);
+typedef int(*socketSecurityCallback)(int arg);
 
 class SocketService
 {
@@ -37,10 +38,12 @@ class SocketService
 	class ServiceCallback
 	{
 	public:
-		ServiceCallback(socketServiceCallback callback)
+		ServiceCallback(socketServiceCallback callback, socketSecurityCallback secCallback)
 			: serviceCallback(callback)
+			, securityCallback(secCallback)
 		{}
 		socketServiceCallback serviceCallback;
+		socketSecurityCallback securityCallback;
 	};
 	
 private:
@@ -70,12 +73,13 @@ private:
 	void addClientSocket(int clientSocket);
 	void removeClientSocket(int clientSocket);
 	bool popClientSocket(int* pClientSocket);
+	int  getSocketFromSystemd(int* pSocketfd);
 
 public:
 	SocketService(void);
 	~SocketService(void);
 	int initialize(void);
-	int registerServiceCallback(const std::string &interfaceName, const std::string &methodName, socketServiceCallback callbackMethod);
+	int registerServiceCallback(const std::string &interfaceName, const std::string &methodName, socketServiceCallback callbackMethod, socketSecurityCallback securityCallback);
 	int start(void);
 	int stop(void);
 	int shutdown(void);

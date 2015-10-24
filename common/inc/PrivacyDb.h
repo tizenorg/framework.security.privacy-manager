@@ -58,7 +58,7 @@ public:
 
 	int setPrivacySetting(const std::string pkgId, const std::string privacyId, bool enabled);
 
-	int addAppPackagePrivacyInfo(const std::string pkgcId, const std::list < std::string > privilegeList, bool privacyPopupRequired);
+	int addAppPackagePrivacyInfo(const std::string pkgId, const std::list < std::string > privilegeList, bool privacyPopupRequired);
 
 	int removeAppPackagePrivacyInfo(const std::string pkgId);
 
@@ -67,6 +67,12 @@ public:
 	int setUserPrompted(const std::string pkgId, bool prompted);
 
 	int getAppPackagesbyPrivacyId(std::string privacyId, std::list < std::pair < std::string, bool > >& list) const;
+
+	int updatePackagePrivacyInfo(std::string privacyId, const std::list <  std::string >& list);
+
+	int addPrivacyListToPackage(const std::string pkgId, const std::list < std::string > &list );
+
+	int removePrivacyListToPackage(const std::string pkgId, const std::list < std::string > &list );
 };
 
 

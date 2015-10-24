@@ -22,7 +22,8 @@
 #include <memory>
 #include <Utils.h>
 
-#undef __READ_DB_IPC__
+//#undef __READ_DB_IPC__
+#define __READ_DB_IPC__
 
 
 std::mutex PrivacyManagerClient::m_singletonMutex;
@@ -115,7 +116,7 @@ PrivacyManagerClient::getPrivacyAppPackages(std::list < std::string >& list) con
 
 	std::unique_ptr <SocketClient> pSocketClient (new SocketClient(INTERFACE_NAME));
 
-	int result = PRIV_MGR_ERROR_SUCCESS
+	int result = PRIV_MGR_ERROR_SUCCESS;
 	int size = 0;
 
 	int res = pSocketClient->connect();
@@ -126,9 +127,9 @@ PrivacyManagerClient::getPrivacyAppPackages(std::list < std::string >& list) con
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "connect : %d", res);
 
 	return result;
-#endif
-
+#else
 	return PrivacyDb::getInstance()->getPrivacyAppPackages(list);
+#endif
 }
 
 int
@@ -140,15 +141,15 @@ PrivacyManagerClient::getAppPackagePrivacyInfo(const std::string pkgId, std::lis
 	int result = PRIV_MGR_ERROR_SUCCESS;
 	int res = pSocketClient->connect();
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "connect : %d", res);
-	pSocketClient->call("getAppPackagePrivacyInfo", pkgId, &result, &list);
+	res = pSocketClient->call("getAppPackagePrivacyInfo", pkgId, &result, &list);
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, m_pSocketClient->disconnect(), "call : %d", res);
-	pSocketClient->disconnect();
+	res = pSocketClient->disconnect();
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "disconnect : %d", res);
 
 	return result;
-#endif
-
+#else
 	return PrivacyDb::getInstance()->getAppPackagePrivacyInfo(pkgId, list);
+#endif
 }
 
 int
@@ -166,8 +167,9 @@ PrivacyManagerClient::isUserPrompted(const std::string pkgId, bool& isPrompted) 
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "disconnect : %d", res);
 
 	return result;
-#endif
+#else
 	return PrivacyDb::getInstance()->isUserPrompted(pkgId, isPrompted);
+#endif
 }
 
 int
@@ -189,7 +191,21 @@ PrivacyManagerClient::setUserPrompted(const std::string pkgId, bool prompted)
 int
 PrivacyManagerClient::getAppPackagesbyPrivacyId(const std::string privacyId, std::list < std::pair < std::string, bool > >& list) const
 {
+#ifdef __READ_DB_IPC__
+	std::unique_ptr <SocketClient> pSocketClient (new SocketClient(INTERFACE_NAME));
+
+	int result = PRIV_MGR_ERROR_SUCCESS;
+	int res = pSocketClient->connect();
+	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "connect : %d", res);
+	res = pSocketClient->call("getAppPackagesbyPrivacyId", privacyId, &result, &list);
+	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, m_pSocketClient->disconnect(), "call : %d", res);
+	res = pSocketClient->disconnect();
+	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "disconnect : %d", res);
+
+	return result;
+#else
 	return PrivacyDb::getInstance()->getAppPackagesbyPrivacyId(privacyId, list);
+#endif
 }
 
 int
@@ -228,4 +244,15 @@ PrivacyManagerClient::notifyUserNotConsented(const std::string pkgId, const std:
 	TryReturn(res == PRIV_MGR_ERROR_SUCCESS, res, , "connect : %d", res);
 
 	return result;
+}
+
+int
+PrivacyManagerClient::updatePackagePrivacyInfo(const std::string pkgId, const std::list<std::string> privilegeList, bool isServerOperation)
+{
+	std::list<std::string> privacyList;
+	int res = PrivacyIdInfo::getPrivacyIdListFromPrivilegeList(privilegeList, privacyList);
+	if (res != PRIV_MGR_ERROR_SUCCESS )
+		return res;
+
+	return PrivacyDb::getInstance()->updatePackagePrivacyInfo(pkgId, privacyList);
 }

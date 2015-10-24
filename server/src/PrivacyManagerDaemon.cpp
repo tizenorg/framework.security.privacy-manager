@@ -18,7 +18,6 @@
 #include <PrivacyManagerDaemon.h>
 #include <PrivacyInfoService.h>
 #include <PrivacyManagerServer.h>
-#include <SocketService.h>
 
 PrivacyManagerDaemon* PrivacyManagerDaemon::pInstance = NULL;
 

@@ -1,9 +1,15 @@
-
 [Unit]
 Description=privacy manager server
 
 [Service]
+User=system
+Group=system
+SmackProcessLabel=privacy-manager
+Type=simple
 ExecStart=/usr/bin/privacy-manager-server
+Sockets=privacy-manager-server.socket
+Restart=always
+RestartSec=0
 
 [Install]
 WantedBy=multi-user.target

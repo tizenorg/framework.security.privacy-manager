@@ -22,10 +22,10 @@ do
     SQL=".read /usr/bin/"$name"_db.sql"
     sqlite3 /opt/dbspace/.$name.db "$SQL"
     touch /opt/dbspace/.$name.db-journal
-    chown 0:0 /opt/dbspace/.$name.db
-    chown 0:0 /opt/dbspace/.$name.db-journal
-    chmod 664 /opt/dbspace/.$name.db
-    chmod 664 /opt/dbspace/.$name.db-journal
+    chown system:system /opt/dbspace/.$name.db
+    chown system:system /opt/dbspace/.$name.db-journal
+    chmod 0664 /opt/dbspace/.$name.db
+    chmod 0664 /opt/dbspace/.$name.db-journal
     if [ -f /usr/lib/rpm-plugins/msm.so ]
     then
         chsmack -a "privacy-manager::db" /opt/dbspace/.$name.db

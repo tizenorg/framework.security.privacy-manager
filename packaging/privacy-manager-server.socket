@@ -1,0 +1,15 @@
+[Unit]
+Description=Privacy Manager socket
+
+[Socket]
+SocketUser=system
+SocketGroup=system
+ListenStream=/tmp/privacy_manager_server
+SocketMode=0777
+SmackLabelIPIn=*
+SmackLabelIPOut=@
+
+Service=privacy-manager-server.service
+
+[Install]
+WantedBy=sockets.target

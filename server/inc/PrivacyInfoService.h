@@ -30,14 +30,15 @@ private:
 public:
 	static void registerCallbacks(SocketService* pSocketService)
 	{
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("addPrivacyInfo"), addPrivacyInfo);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("removePrivacyInfo"), removePrivacyInfo);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("setPrivacySetting"), setPrivacySetting);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("getPrivacyAppPackages"), getPrivacyAppPackages);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("getAppPackagePrivacyInfo"), getAppPackagePrivacyInfo);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("isUserPrompted"), isUserPrompted);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("setUserPrompted"), setUserPrompted);
-		pSocketService->registerServiceCallback(getInterfaceName(), std::string("notifyUserNotConsented"), notifyUserNotConsented);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("addPrivacyInfo"), addPrivacyInfo, NULL);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("removePrivacyInfo"), removePrivacyInfo, NULL);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("setPrivacySetting"), setPrivacySetting, checkPrivacySettingPermission);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("getPrivacyAppPackages"), getPrivacyAppPackages, checkPrivacyReadPermission);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("getAppPackagePrivacyInfo"), getAppPackagePrivacyInfo, checkPrivacyReadPermission);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("getAppPackagesbyPrivacyId"), getAppPackagesbyPrivacyId, checkPrivacyReadPermission);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("isUserPrompted"), isUserPrompted, NULL);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("setUserPrompted"), setUserPrompted, NULL);
+		pSocketService->registerServiceCallback(getInterfaceName(), std::string("notifyUserNotConsented"), notifyUserNotConsented, NULL);
 	}
 
 	static void addPrivacyInfo(SocketConnection* pConnector);
@@ -54,11 +55,17 @@ public:
 
 	static void getAppPackagePrivacyInfo(SocketConnection* pConnector);
 
+	static void getAppPackagesbyPrivacyId(SocketConnection* pConnector);
+
 	static void isUserPrompted(SocketConnection* pConnector);
 	
 	static void setUserPrompted(SocketConnection* pConnector);
 
 	static void notifyUserNotConsented(SocketConnection* pConnector);
+
+	static int checkPrivacySettingPermission(int arg); 
+
+	static int checkPrivacyReadPermission(int arg); 
 
 };
 #endif // _PRIVACY_INFO_SERVICE_H_

@@ -31,6 +31,7 @@
 #include "SocketService.h"
 #include "SocketConnection.h"
 #include <sys/smack.h>
+#include <systemd/sd-daemon.h>
 
 const int SocketService::MAX_LISTEN = 5;
 
@@ -48,14 +49,36 @@ SocketService::~SocketService(void)
 }
 
 int
+SocketService::getSocketFromSystemd(int* pSocketfd)
+{
+    int n = sd_listen_fds(0);
+    int fd;
+
+	for (fd = SD_LISTEN_FDS_START; fd < SD_LISTEN_FDS_START+n; ++fd) {
+		if (0 < sd_is_socket_unix(fd, SOCK_STREAM, 1, SERVER_ADDRESS.c_str(), 0)) {
+			*pSocketfd = fd;
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int
 SocketService::initialize(void)
 {
 	LOGI("SocketService initializing");
 
+	if(getSocketFromSystemd(&m_listenFd))
+	{
+		return 0;
+	}
+	else
+	{
+		LOGE("Failed to get socket from systemd. Create domain socket");
+	}
+
 	m_listenFd = socket(AF_UNIX, SOCK_STREAM, 0);
 	TryReturn( m_listenFd != -1, PRIV_MGR_ERROR_SYSTEM_ERROR, , "socket : %s", strerror(errno));
-
-	TryReturn( smack_fsetlabel(m_listenFd, "*", SMACK_LABEL_IPIN) == 0, PRIV_MGR_ERROR_SYSTEM_ERROR, , "Failed to set permission to socket : %s", strerror(errno));
 
 	int flags = -1;
 	int res;
@@ -64,13 +87,11 @@ SocketService::initialize(void)
 	res = fcntl(m_listenFd, F_SETFL, flags | O_NONBLOCK);
 	TryReturn( res != -1, PRIV_MGR_ERROR_SYSTEM_ERROR, , "fcntl : %s", strerror(errno));
 
+	int tmpSockLen = strlen(SERVER_ADDRESS.c_str());
 	sockaddr_un server_address;
 	bzero(&server_address, sizeof(server_address));
 	server_address.sun_family = AF_UNIX;
-    if(strlen(SERVER_ADDRESS.c_str()) <= strlen(server_address.sun_path))
-        strcpy(server_address.sun_path, SERVER_ADDRESS.c_str());
-    else
-        return PRIV_MGR_ERROR_SYSTEM_ERROR;
+	strncpy(server_address.sun_path, SERVER_ADDRESS.c_str(), tmpSockLen);
 	unlink(server_address.sun_path);
 
 	mode_t socket_umask, original_umask;
@@ -274,12 +295,14 @@ SocketService::connectionService(int fd)
 		return PRIV_MGR_ERROR_NO_DATA;
 	}
 
-//	if(m_callbackMap[interfaceName][methodName]->securityCallback != NULL){
-//		if(!m_callbackMap[interfaceName][methodName]->securityCallback(fd)){
-//			LOGE("Security check returned false");
-//			return -1;
-//		}
-//	}
+	if(m_callbackMap[interfaceName][methodName]->securityCallback != NULL){
+		if(m_callbackMap[interfaceName][methodName]->securityCallback(fd) != PRIV_MGR_ERROR_SUCCESS){
+			LOGE("Security check returned false");
+			removeClientSocket(fd);
+			close(fd);
+			return PRIV_MGR_ERROR_PERMISSION_DENIED;
+		}
+	}
 
 	//LOGI("Calling service");
 	m_callbackMap[interfaceName][methodName]->serviceCallback(&connector);
@@ -324,7 +347,7 @@ SocketService::shutdown(void)
 }
 
 int
-SocketService::registerServiceCallback(const std::string &interfaceName,  const std::string &methodName, socketServiceCallback callbackMethod)
+SocketService::registerServiceCallback(const std::string &interfaceName,  const std::string &methodName, socketServiceCallback callbackMethod, socketSecurityCallback securityCallback)
 {
 	if(NULL == callbackMethod)
 	{
@@ -337,7 +360,7 @@ SocketService::registerServiceCallback(const std::string &interfaceName,  const 
 		return PRIV_MGR_ERROR_INVALID_PARAMETER;
 	}
 
-	auto serviceCallbackPtr = std::make_shared<ServiceCallback>(ServiceCallback(callbackMethod));
+	auto serviceCallbackPtr = std::make_shared<ServiceCallback>(ServiceCallback(callbackMethod, securityCallback));
 	m_callbackMap[interfaceName][methodName] = serviceCallbackPtr;
 
 	return PRIV_MGR_ERROR_SUCCESS;
