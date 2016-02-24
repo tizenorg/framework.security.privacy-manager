@@ -113,12 +113,12 @@ PrivacyChecker::getPackageId(std::string& pkgId)
 	int pid = getpid();
 	char package_id[255];
 
-	int ret = aul_app_get_pkgid_bypid(pid, package_id, sizeof(package_id));
+	int ret = aul_app_get_pkgname_bypid(pid, package_id, sizeof(package_id));
 	if (ret < 0) {
 		return PRIV_MGR_ERROR_SYSTEM_ERROR;
 	}
 
-	LOGD("get pkg id from aul : %s", package_id);
+	LOGD("pkgId : %s", package_id);
 	pkgId = package_id;
 
 	return PRIV_MGR_ERROR_SUCCESS;
